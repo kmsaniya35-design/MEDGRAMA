@@ -25,7 +25,10 @@ Project concept and solution design. Prototype implementation is in progress.
 
 Team:-
 
-1.Saniya KM   2.Vaishnavi N   3.Pranav Krishna RK  4.Ravikiran B
+1.Saniya KM  
+2.Vaishnavi N   
+3.Pranav Krishna RK  
+4.Ravikiran B
 
 Disclaimer:-
 
