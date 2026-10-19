@@ -1,220 +1,256 @@
-# Byte-compiled / optimized / DLL files
-__pycache__/
-*.py[codz]
-*$py.class
 
-# C extensions
-*.so
+import streamlit as st
+from PIL import Image
+import sqlite3
+from datetime import datetime
 
-# Distribution / packaging
-.Python
-build/
-develop-eggs/
-dist/
-downloads/
-eggs/
-.eggs/
-lib/
-lib64/
-parts/
-sdist/
-var/
-wheels/
-share/python-wheels/
-*.egg-info/
-.installed.cfg
-*.egg
-MANIFEST
+# ---------------- PAGE CONFIG ----------------
+st.set_page_config(
+    page_title="Netra | PHC Screening",
+    page_icon="👁️",
+    layout="wide"
+)
 
-# PyInstaller
-#   Usually these files are written by a python script from a template
-#   before PyInstaller builds the exe, so as to inject date/other infos into it.
-*.manifest
-*.spec
+# ---------------- DATABASE ----------------
+def init_db():
+    conn = sqlite3.connect("netra_records.db")
+    conn.execute("""
+        CREATE TABLE IF NOT EXISTS patients (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            patient_id TEXT,
+            age INTEGER,
+            bp TEXT,
+            sugar REAL,
+            bmi REAL,
+            risk TEXT,
+            date TEXT
+        )
+    """)
+    conn.commit()
+    conn.close()
 
-# Installer logs
-pip-log.txt
-pip-delete-this-directory.txt
+init_db()
 
-# Unit test / coverage reports
-htmlcov/
-.tox/
-.nox/
-.coverage
-.coverage.*
-.cache
-nosetests.xml
-coverage.xml
-*.cover
-*.py.cover
-*.lcov
-.hypothesis/
-.pytest_cache/
-cover/
+# ---------------- HEADER ----------------
+st.title("🔵 Netra")
+st.subheader("AI-assisted multi-sign screening aid for PHC nurses")
+st.caption("📱 Phone camera  |  💡 Ring light  |  🎨 Colour card")
+st.divider()
 
-# Translations
-*.mo
-*.pot
+st.info(
+    "Prototype only: screening indicators are not a diagnosis. "
+    "Clinical assessment is required before making medical decisions."
+)
 
-# Django stuff:
-*.log
-local_settings.py
-db.sqlite3
-db.sqlite3-journal
+# ---------------- PATIENT DETAILS ----------------
+st.header("Patient Details")
 
-# Flask stuff:
-instance/
-.webassets-cache
+col1, col2 = st.columns(2)
 
-# Scrapy stuff:
-.scrapy
+with col1:
+    patient_id = st.text_input("Patient ID", "0142")
 
-# Sphinx documentation
-docs/_build/
+with col2:
+    age = st.number_input(
+        "Age",
+        min_value=0,
+        max_value=120,
+        value=52
+    )
 
-# PyBuilder
-.pybuilder/
-target/
+st.divider()
 
-# Jupyter Notebook
-.ipynb_checkpoints
+# ---------------- PHOTO INPUT ----------------
+st.header("1. Photos")
 
-# IPython
-profile_default/
-ipython_config.py
+photo_col1, photo_col2, photo_col3 = st.columns(3)
 
-# pyenv
-#   For a library or package, you might want to ignore these files since the code is
-#   intended to run in multiple environments; otherwise, check them in:
-# .python-version
+def photo_input(label, key):
+    uploaded = st.file_uploader(
+        f"Upload {label} photo",
+        type=["jpg", "jpeg", "png"],
+        key=key
+    )
 
-# pipenv
-#   According to pypa/pipenv#598, it is recommended to include Pipfile.lock in version control.
-#   However, in case of collaboration, if having platform-specific dependencies or dependencies
-#   having no cross-platform support, pipenv may install dependencies that don't work, or not
-#   install all needed dependencies.
-# Pipfile.lock
+    if uploaded:
+        image = Image.open(uploaded).convert("RGB")
+        st.image(image, caption=label, width=200)
+        return image
 
-# uv
-#   Similar to Pipfile.lock, it is generally recommended to include uv.lock in version control.
-#   This is especially recommended for binary packages to ensure reproducibility, and is more
-#   commonly ignored for libraries.
-# uv.lock
+    return None
 
-# poetry
-#   Similar to Pipfile.lock, it is generally recommended to include poetry.lock in version control.
-#   This is especially recommended for binary packages to ensure reproducibility, and is more
-#   commonly ignored for libraries.
-#   https://python-poetry.org/docs/basic-usage/#commit-your-poetrylock-file-to-version-control
-# poetry.lock
-# poetry.toml
+with photo_col1:
+    eye_photo = photo_input("Eye", "eye")
 
-# pdm
-#   Similar to Pipfile.lock, it is generally recommended to include pdm.lock in version control.
-#   pdm recommends including project-wide configuration in pdm.toml, but excluding .pdm-python.
-#   https://pdm-project.org/en/latest/usage/project/#working-with-version-control
-# pdm.lock
-# pdm.toml
-.pdm-python
-.pdm-build/
+with photo_col2:
+    nail_photo = photo_input("Nail bed", "nail")
 
-# pixi
-#   Similar to Pipfile.lock, it is generally recommended to include pixi.lock in version control.
-# pixi.lock
-#   Pixi creates a virtual environment in the .pixi directory, just like venv module creates one
-#   in the .venv directory. It is recommended not to include this directory in version control.
-.pixi/*
-!.pixi/config.toml
+with photo_col3:
+    skin_photo = photo_input("Skin", "skin")
 
-# PEP 582; used by e.g. github.com/David-OConnor/pyflow and github.com/pdm-project/pdm
-__pypackages__/
+st.caption(
+    "Use clear, well-lit photos. Actual AI image analysis "
+    "requires a separately trained and validated model."
+)
 
-# Celery stuff
-celerybeat-schedule*
-celerybeat.pid
+st.divider()
 
-# Redis
-*.rdb
-*.aof
-*.pid
+# ---------------- VITALS ----------------
+st.header("2. Vitals")
 
-# RabbitMQ
-mnesia/
-rabbitmq/
-rabbitmq-data/
+c1, c2, c3 = st.columns(3)
 
-# ActiveMQ
-activemq-data/
+with c1:
+    systolic = st.number_input(
+        "Systolic BP (mmHg)", 60, 260, 120
+    )
+    diastolic = st.number_input(
+        "Diastolic BP (mmHg)", 30, 160, 80
+    )
 
-# SageMath parsed files
-*.sage.py
+with c2:
+    sugar = st.number_input(
+        "Blood sugar (mg/dL)",
+        min_value=0.0,
+        max_value=1000.0,
+        value=100.0
+    )
+    sugar_type = st.selectbox(
+        "Measurement type",
+        ["Random", "Fasting", "Post-meal"]
+    )
 
-# Environments
-.env
-.envrc
-.venv
-env/
-venv/
-ENV/
-env.bak/
-venv.bak/
+with c3:
+    bmi = st.number_input(
+        "BMI (kg/m²)",
+        min_value=0.0,
+        max_value=100.0,
+        value=22.0
+    )
 
-# Spyder project settings
-.spyderproject
-.spyproject
+st.divider()
 
-# Rope project settings
-.ropeproject
+# ---------------- SCREENING ----------------
+st.header("3. Screening Review")
 
-# mkdocs/Zensical documentation
-/site
+eye_observation = st.selectbox(
+    "Eye appearance",
+    ["Not assessed", "No visible concern", "Pale appearance", "Needs review"]
+)
 
-# mypy
-.mypy_cache/
-.dmypy.json
-dmypy.json
+nail_observation = st.selectbox(
+    "Nail-bed appearance",
+    ["Not assessed", "No visible concern", "Pale appearance", "Needs review"]
+)
 
-# Pyre type checker
-.pyre/
+skin_observation = st.selectbox(
+    "Skin appearance",
+    ["Not assessed", "No visible concern", "Needs review"]
+)
 
-# pytype static type analyzer
-.pytype/
+st.warning(
+    "These observations are entered by the user. "
+    "The current prototype does not automatically interpret images."
+)
 
-# Cython debug symbols
-cython_debug/
+# ---------------- RISK REVIEW ----------------
+st.header("4. Preliminary Risk Review")
 
-# PyCharm
-#   JetBrains specific template is maintained in a separate JetBrains.gitignore that can
-#   be found at https://github.com/github/gitignore/blob/main/Global/JetBrains.gitignore
-#   and can be added to the global gitignore or merged into this file.  For a more nuclear
-#   option (not recommended) you can uncomment the following to ignore the entire idea folder.
-# .idea/
+if st.button("Assess screening inputs", type="primary"):
 
-# Abstra
-#   Abstra is an AI-powered process automation framework.
-#   Ignore directories containing user credentials, local state, and settings.
-#   Learn more at https://abstra.io/docs
-.abstra/
+    findings = []
 
-# Visual Studio Code
-#   Visual Studio Code specific template is maintained in a separate VisualStudioCode.gitignore that
-#   can be found at https://github.com/github/gitignore/blob/main/Global/VisualStudioCode.gitignore
-#   and can be added to the global gitignore or merged into this file. However, if you prefer, you
-#   could uncomment the following to ignore the entire vscode folder
-# .vscode/
-# Temporary file for partial code execution
-tempCodeRunnerFile.py
+    # Illustrative flags, not a validated medical algorithm
+    if systolic >= 140 or diastolic >= 90:
+        findings.append(
+            "Blood pressure is elevated and requires clinical assessment."
+        )
 
-# Ruff stuff:
-.ruff_cache/
+    if eye_observation == "Pale appearance":
+        findings.append(
+            "Eye appearance needs assessment; consider clinical evaluation."
+        )
 
-# PyPI configuration file
-.pypirc
+    if nail_observation == "Pale appearance":
+        findings.append(
+            "Nail-bed appearance needs assessment."
+        )
 
-# Marimo
-marimo/_static/
-marimo/_lsp/
-__marimo__/
+    if skin_observation == "Needs review":
+        findings.append(
+            "Skin observation requires further review."
+        )
 
-# Streamlit
-.streamlit/secrets.toml
+    if eye_observation == "Needs review":
+        findings.append("Eye observation requires further review.")
+
+    if nail_observation == "Needs review":
+        findings.append("Nail-bed observation requires further review.")
+
+    # Avoid claiming that a simple rule is an AI diagnosis
+    if findings:
+        risk = "Review required"
+        st.error("⚠️ Further clinical assessment recommended")
+        for finding in findings:
+            st.write("•", finding)
+    else:
+        risk = "No rule-based flag"
+        st.success(
+            "No configured screening flags were triggered. "
+            "This does not rule out disease."
+        )
+
+    st.caption(
+        "This is a demonstration rule set, not a validated risk score. "
+        "Blood sugar, BMI and images are not used to diagnose a condition."
+    )
+
+    # ---------------- SAVE RECORD ----------------
+    if st.button("Save screening record"):
+
+        conn = sqlite3.connect("netra_records.db")
+        conn.execute("""
+            INSERT INTO patients
+            (patient_id, age, bp, sugar, bmi, risk, date)
+            VALUES (?, ?, ?, ?, ?, ?, ?)
+        """, (
+            patient_id,
+            age,
+            f"{systolic}/{diastolic}",
+            sugar,
+            bmi,
+            risk,
+            datetime.now().isoformat(timespec="seconds")
+        ))
+        conn.commit()
+        conn.close()
+
+        st.success("Screening record saved locally.")
+
+st.divider()
+
+# ---------------- RECORD HISTORY ----------------
+st.header("5. Saved Screening Records")
+
+if st.button("View saved records"):
+    conn = sqlite3.connect("netra_records.db")
+    records = conn.execute("""
+        SELECT patient_id, age, bp, sugar, bmi, risk, date
+        FROM patients ORDER BY id DESC
+    """).fetchall()
+    conn.close()
+
+    if records:
+        st.dataframe(
+            records,
+            column_config={
+                "0": "Patient ID"
+            },
+            use_container_width=True
+        )
+    else:
+        st.info("No records saved yet.")
+
+st.caption(
+    "Netra prototype | Decision support only — not a diagnostic device."
+)
